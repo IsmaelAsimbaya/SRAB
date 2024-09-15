@@ -1,0 +1,12 @@
+[submodule "AppSRAB"]
+	path = AppSRAB
+	url = https://github.com/IsmaelAsimbaya/AppSRAB
+[submodule "AutenticacionBiometrica"]
+	path = AutenticacionBiometrica
+	url = https://github.com/IsmaelAsimbaya/AutenticacionBiometrica
+[submodule "srab_dashboard"]
+	path = srab_dashboard
+	url = https://github.com/IsmaelAsimbaya/srab_dashboard
+[submodule "srab_microservicios"]
+	path = srab_microservicios
+	url = https://github.com/IsmaelAsimbaya/srab_microservicios
