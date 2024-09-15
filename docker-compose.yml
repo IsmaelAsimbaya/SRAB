@@ -1,0 +1,222 @@
+version: "3.8"
+
+services:
+  proxy-traefik:
+    image: traefik
+    container_name: proxy-traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - app-network
+
+  react-app:
+    image: ciasimbaya/srab_react_dashboard
+    container_name: react-app
+    ports:
+      - "5000:80"
+    expose:
+      - 80
+    environment:
+      REACT_APP_API_BASE_URL: http://localhost:80
+      REACT_APP_APP_USUARIOS_URL: http://localhost:80/app-usuarios
+      REACT_APP_APP_LUGARESTRABAJO_URL: http://localhost:80/app-lugarestrabajo
+      REACT_APP_APP_HORARIOS_URL: http://localhost:80/app-horarios
+      REACT_APP_APP_MARCACIONES_URL: http://localhost:80/app-marcaciones
+      REACT_APP_APP_LOGINS_URL: http://localhost:80/app-logins
+      REACT_APP_APP_PYAUTENBIO: http://localhost:80/app-pyautenbio
+      REACT_APP_ADMIN_DASHBOARD_USERNAME: "invitado"
+      REACT_APP_ADMIN_DASHBOARD_PASSWORD: "invitado"
+      REACT_APP_API_KEY: "AIzaSyBnwiZd_mDN1VaqpnOgz3C6szxFKtYR4lU"
+      REACT_APP_AUTH_DOMAIN: "srab-d7052.firebaseapp.com"
+      REACT_APP_PROJECT_ID: "srab-d7052"
+      REACT_APP_STORAGE_BUCKET: "srab-d7052.appspot.com"
+      REACT_APP_MESSAGING_SENDER_ID: "378401444355"
+      REACT_APP_APP_ID: "1:378401444355:web:35d72c36b13a4c15c67436"
+      REACT_APP_MEASUREMENT_ID: "G-S4N0K6Q76M"
+    labels:
+      - "traefik.http.routers.react.rule=PathPrefix(`/`)"
+      - "traefik.http.middlewares.react.stripprefix.prefixes=/"
+      - "traefik.http.routers.react.middlewares=react"
+      - "traefik.http.services.react.loadbalancer.server.port=80"
+    networks:
+      - app-network
+
+  app-pyautenbio-service:
+    image: ciasimbaya/app-pyautenbio
+    container_name: app-pyautenbio
+    deploy:
+      replicas: 1
+    volumes:
+      - pyautenbio_data:/work
+    expose:
+      - 8000
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pyautenbio.rule=PathPrefix(`/app-pyautenbio`)"
+      - "traefik.http.middlewares.pyautenbio.stripprefix.prefixes=/app-pyautenbio"
+      - "traefik.http.routers.pyautenbio.middlewares=pyautenbio"
+      - "traefik.http.services.pyautenbio.loadbalancer.server.port=8000"
+    networks:
+      - app-network
+
+  postgres:
+    image: postgres:10.4
+    container_name: postgresql-database
+    environment:
+      POSTGRES_DB: postgresdb
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    labels:
+      - "traefik.enable=false"
+    networks:
+      - app-network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin-container
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ciasimbaya@uce.edu.ec
+      PGADMIN_DEFAULT_PASSWORD: JPCVg938
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin/data
+    ports:
+      - "5050:80"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pgadmin.rule=PathPrefix(`/pgadmin`)"
+      - "traefik.http.middlewares.pgadmin.stripprefix.prefixes=/pgadmin"
+      - "traefik.http.routers.pgadmin.middlewares=pgadmin"
+      - "traefik.http.services.pgadmin.loadbalancer.server.port=80"
+    networks:
+      - app-network
+
+  app-lugarestrabajo-service:
+    image: ciasimbaya/app-lugarestrabajo:1.0.0
+    deploy:
+      replicas: 1
+    expose:
+      - 9091
+    environment:
+      DB_USERNAME: admin
+      DB_PASSWORD: admin123
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: postgresdb
+      HTTP_HOST: 0.0.0.0
+      HTTP_PORT: 9091
+    labels:
+      - "traefik.http.routers.lugarestrabajo.rule=PathPrefix(`/app-lugarestrabajo`)"
+      - "traefik.http.middlewares.lugarestrabajo.stripprefix.prefixes=/app-lugarestrabajo"
+      - "traefik.http.routers.lugarestrabajo.middlewares=lugarestrabajo"
+      - "traefik.http.services.lugarestrabajo.loadbalancer.server.port=9091"
+    networks:
+      - app-network
+
+  app-horarios-service:
+    image: ciasimbaya/app-horarios:1.0.0
+    deploy:
+      replicas: 1
+    expose:
+      - 9092
+    environment:
+      DB_USERNAME: admin
+      DB_PASSWORD: admin123
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: postgresdb
+      HTTP_HOST: 0.0.0.0
+      HTTP_PORT: 9092
+    labels:
+      - "traefik.http.routers.horarios.rule=PathPrefix(`/app-horarios`)"
+      - "traefik.http.middlewares.horarios.stripprefix.prefixes=/app-horarios"
+      - "traefik.http.routers.horarios.middlewares=horarios"
+      - "traefik.http.services.horarios.loadbalancer.server.port=9092"
+    networks:
+      - app-network
+
+  app-marcaciones-service:
+    image: ciasimbaya/app-marcaciones:1.0.0
+    deploy:
+      replicas: 1
+    expose:
+      - 9093
+    environment:
+      DB_USERNAME: admin
+      DB_PASSWORD: admin123
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: postgresdb
+      HTTP_HOST: 0.0.0.0
+      HTTP_PORT: 9093
+    labels:
+      - "traefik.http.routers.marcaciones.rule=PathPrefix(`/app-marcaciones`)"
+      - "traefik.http.middlewares.marcaciones.stripprefix.prefixes=/app-marcaciones"
+      - "traefik.http.routers.marcaciones.middlewares=marcaciones"
+      - "traefik.http.services.marcaciones.loadbalancer.server.port=9093"
+    networks:
+      - app-network
+
+  app-logins-service:
+    image: ciasimbaya/app-logins:1.0.0
+    deploy:
+      replicas: 1
+    expose:
+      - 9094
+    environment:
+      DB_USERNAME: admin
+      DB_PASSWORD: admin123
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: postgresdb
+      HTTP_HOST: 0.0.0.0
+      HTTP_PORT: 9094
+    labels:
+      - "traefik.http.routers.logins.rule=PathPrefix(`/app-logins`)"
+      - "traefik.http.middlewares.logins.stripprefix.prefixes=/app-logins"
+      - "traefik.http.routers.logins.middlewares=logins"
+      - "traefik.http.services.logins.loadbalancer.server.port=9094"
+    networks:
+      - app-network
+
+  app-usuarios-service:
+    image: ciasimbaya/app-usuarios:1.0.0
+    deploy:
+      replicas: 1
+    expose:
+      - 9090
+    environment:
+      DB_USERNAME: admin
+      DB_PASSWORD: admin123
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: postgresdb
+      HTTP_HOST: 0.0.0.0
+      HTTP_PORT: 9090
+      APP_LUGARESTRABAJO_URL: http://proxy-traefik/app-lugarestrabajo
+      APP_HORARIOS_URL: http://proxy-traefik/app-horarios
+      APP_MARCACIONES_URL: http://proxy-traefik/app-marcaciones
+      APP_LOGINS_URL: http://proxy-traefik/app-logins
+    labels:
+      - "traefik.http.routers.usuarios.rule=PathPrefix(`/app-usuarios`)"
+      - "traefik.http.middlewares.usuarios.stripprefix.prefixes=/app-usuarios"
+      - "traefik.http.routers.usuarios.middlewares=usuarios"
+      - "traefik.http.services.usuarios.loadbalancer.server.port=9090"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+  pyautenbio_data:

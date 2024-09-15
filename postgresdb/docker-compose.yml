@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:10.4
+    container_name: postgresql-database-test
+    environment:
+      POSTGRES_DB: postgresdb
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin-container-test
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ciasimbaya@uce.edu.ec
+      PGADMIN_DEFAULT_PASSWORD: JPCVg938
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin/data
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+  pgadmin_data:
